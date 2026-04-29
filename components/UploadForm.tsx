@@ -2,27 +2,10 @@
 import { useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Upload, ImageIcon, X, Loader2 } from "lucide-react";
 import { voiceOptions, voiceCategories, DEFAULT_VOICE } from "@/constants";
-
-const MAX_PDF_SIZE = 50 * 1024 * 1024;
-
-const formSchema = z.object({
-  pdfFile: z
-    .any()
-    .refine((f) => f instanceof File, "A PDF file is required")
-    .refine(
-      (f) => !(f instanceof File) || f.size <= MAX_PDF_SIZE,
-      "File must be under 50MB"
-    ),
-  coverImage: z.any().optional(),
-  title: z.string().min(1, "Title is required"),
-  author: z.string().min(1, "Author name is required"),
-  voiceId: z.string().min(1, "Please select a voice"),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import { UploadSchema } from "@/lib/zod";
+import { BookUploadFormValues } from "@/types";
 
 const UploadForm = () => {
   const pdfInputRef = useRef<HTMLInputElement>(null);
@@ -34,8 +17,8 @@ const UploadForm = () => {
     watch,
     setValue,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  } = useForm<BookUploadFormValues>({
+    resolver: zodResolver(UploadSchema),
     defaultValues: {
       voiceId: voiceOptions[DEFAULT_VOICE as keyof typeof voiceOptions].id,
     },
@@ -45,7 +28,7 @@ const UploadForm = () => {
   const coverImage = watch("coverImage") as File | undefined;
   const voiceId = watch("voiceId");
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (data: BookUploadFormValues) => {
     console.log("Form submitted:", data);
   };
 

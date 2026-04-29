@@ -1,17 +1,10 @@
 "use client";
 
-import {
-  Show,
-  SignInButton,
-  SignUpButton,
-  UserButton,
-  useUser,
-} from "@clerk/nextjs";
+import { Show, SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
 
 const navItems = [
   { label: "Library", href: "/" },
@@ -22,7 +15,7 @@ const Navbar = () => {
   const pathName = usePathname();
   const { user } = useUser();
   return (
-    <header className="w-full fixed z-50 bg-('--bg-primary)'">
+    <header className="w-full fixed z-50 bg-[var(--bg-primary)]">
       <div className="wrapper navbar-height py-4 flex justify-between items-center">
         <Link href="/" className="flex gap-0.5 items-center">
           <Image
