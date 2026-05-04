@@ -7,7 +7,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const body = (await request.json()) as HandleUploadBody;
     const jsonResponse = await handleUpload({
-    const jsonResponse = await handleUpload({
       token: process.env.BLOB_READ_WRITE_TOKEN,
       body,
       request,
@@ -46,6 +45,5 @@ export async function POST(request: Request): Promise<NextResponse> {
       { error: status === 401 ? "Unauthorized" : "Upload failed" },
       { status },
     );
-  }
   }
 }
