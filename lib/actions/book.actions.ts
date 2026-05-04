@@ -224,16 +224,20 @@ export const searchBookSegments = async (
     // Fallback: regex search matching ANY keyword
     if (segments.length === 0) {
       const keywords = query.split(/\s+/).filter((k) => k.length > 2);
-      const pattern = keywords.map(escapeRegex).join("|");
+      if (keywords.length === 0) {
+        segments = [];
+      } else {
+        const pattern = keywords.map(escapeRegex).join("|");
 
-      segments = await BookSegment.find({
-        bookId: bookObjectId,
-        content: { $regex: pattern, $options: "i" },
-      })
-        .select("_id bookId content segmentIndex pageNumber wordCount")
-        .sort({ segmentIndex: 1 })
-        .limit(limit)
-        .lean();
+        segments = await BookSegment.find({
+          bookId: bookObjectId,
+          content: { $regex: pattern, $options: "i" },
+        })
+          .select("_id bookId content segmentIndex pageNumber wordCount")
+          .sort({ segmentIndex: 1 })
+          .limit(limit)
+          .lean();
+      }
     }
 
     console.log(`Search complete. Found ${segments.length} results`);
