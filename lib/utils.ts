@@ -147,8 +147,6 @@ export async function parsePDFFile(file: File) {
     // Split text into segments for search
     const segments = splitIntoSegments(fullText);
 
-    
-
     return {
       content: segments,
       cover: coverDataURL,
