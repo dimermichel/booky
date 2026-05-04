@@ -91,6 +91,7 @@ export const formatDuration = (seconds: number): string => {
 };
 
 export async function parsePDFFile(file: File) {
+  let pdfDocument: any;
   try {
     const pdfjsLib = await import("pdfjs-dist");
 
@@ -106,7 +107,7 @@ export async function parsePDFFile(file: File) {
 
     // Load PDF document
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    const pdfDocument = await loadingTask.promise;
+    pdfDocument = await loadingTask.promise;
 
     // Render first page as cover image
     const firstPage = await pdfDocument.getPage(1);
@@ -124,6 +125,7 @@ export async function parsePDFFile(file: File) {
     await firstPage.render({
       canvasContext: context,
       viewport: viewport,
+      canvas: canvas,
     }).promise;
 
     // Convert canvas to data URL
@@ -145,8 +147,7 @@ export async function parsePDFFile(file: File) {
     // Split text into segments for search
     const segments = splitIntoSegments(fullText);
 
-    // Clean up PDF document resources
-    await pdfDocument.destroy();
+    
 
     return {
       content: segments,
@@ -157,5 +158,8 @@ export async function parsePDFFile(file: File) {
     throw new Error(
       `Failed to parse PDF file: ${error instanceof Error ? error.message : String(error)}`,
     );
+  } finally {
+    // Clean up PDF document resources
+    await pdfDocument.destroy();
   }
 }

@@ -7,12 +7,17 @@ import {
 } from "./constants";
 
 export const UploadSchema = z.object({
-  title: z.string().min(1, "Title is required").max(100, "Title is too long"),
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(100, "Title is too long"),
   author: z
     .string()
+    .trim()
     .min(1, "Author name is required")
     .max(100, "Author name is too long"),
-  persona: z.string().min(1, "Please select a voice"),
+  persona: z.string().trim().min(1, "Please select a voice"),
   pdfFile: z
     .instanceof(File, { message: "PDF file is required" })
     .refine(
