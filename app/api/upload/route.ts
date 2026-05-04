@@ -41,6 +41,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     const status = message.includes("Unauthorized") ? 401 : 500;
-    return NextResponse.json({ error: message }, { status });
+    console.error("Upload route failed", error);
+    return NextResponse.json(
+      { error: status === 401 ? "Unauthorized" : "Upload failed" },
+      { status },
+    );
+  }
   }
 }
