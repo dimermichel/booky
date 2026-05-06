@@ -16,7 +16,7 @@ const VapiControls = ({ book }: { book: IBook }) => {
     duration,
     start,
     stop,
-    clearErrors,
+    //clearErrors,
   } = useVapi(book);
 
   const voice = getVoice(book.persona);
