@@ -1,9 +1,11 @@
 import BookCard from "@/components/BookCard";
 import HeroSection from "@/components/HeroSection";
 import { getAllBooks } from "@/lib/actions/book.actions";
+import { auth } from "@clerk/nextjs/server";
 
 const Page = async () => {
-  const bookResults = await getAllBooks();
+  const { userId } = await auth();
+  const bookResults = await getAllBooks(userId ?? undefined);
   const books = bookResults.success ? (bookResults.data ?? []) : [];
 
   return (

@@ -6,6 +6,30 @@ import { IBook } from "@/types";
 import { Mic, MicOff } from "lucide-react";
 import Image from "next/image";
 
+const STATUS_LABELS: Record<string, string> = {
+  idle: "Ready",
+  connecting: "Connecting...",
+  starting: "Starting...",
+  listening: "Listening...",
+  thinking: "Thinking...",
+  speaking: "Speaking...",
+};
+
+const STATUS_DOT_CLASS: Record<string, string> = {
+  idle: "vapi-status-dot-ready",
+  connecting: "vapi-status-dot-connecting",
+  starting: "vapi-status-dot-connecting",
+  listening: "vapi-status-dot-listening",
+  thinking: "vapi-status-dot-thinking",
+  speaking: "vapi-status-dot-speaking",
+};
+
+const formatTime = (seconds: number) => {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+};
+
 const VapiControls = ({ book }: { book: IBook }) => {
   const {
     status,
@@ -14,9 +38,9 @@ const VapiControls = ({ book }: { book: IBook }) => {
     currentMessage,
     currentUserMessage,
     duration,
+    maxDurationSeconds,
     start,
     stop,
-    //clearErrors,
   } = useVapi(book);
 
   const voice = getVoice(book.persona);
@@ -68,8 +92,8 @@ const VapiControls = ({ book }: { book: IBook }) => {
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="vapi-status-indicator">
-              <span className="vapi-status-dot vapi-status-dot-ready" />
-              <span className="vapi-status-text">Ready</span>
+              <span className={`vapi-status-dot ${STATUS_DOT_CLASS[status]}`} />
+              <span className="vapi-status-text">{STATUS_LABELS[status]}</span>
             </div>
 
             <div className="vapi-status-indicator">
@@ -77,7 +101,9 @@ const VapiControls = ({ book }: { book: IBook }) => {
             </div>
 
             <div className="vapi-status-indicator">
-              <span className="vapi-status-text">0:00/15:00</span>
+              <span className="vapi-status-text">
+                {formatTime(duration)} / {formatTime(maxDurationSeconds)}
+              </span>
             </div>
           </div>
         </div>
