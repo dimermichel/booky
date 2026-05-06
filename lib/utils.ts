@@ -1,5 +1,6 @@
 import { TextSegment } from "@/types";
 import { clsx, type ClassValue } from "clsx";
+import type { PDFDocumentProxy } from "pdfjs-dist/types/src/display/api";
 import { twMerge } from "tailwind-merge";
 import { DEFAULT_VOICE, voiceOptions } from "./constants";
 
@@ -91,7 +92,7 @@ export const formatDuration = (seconds: number): string => {
 };
 
 export async function parsePDFFile(file: File) {
-  let pdfDocument: any;
+  let pdfDocument: PDFDocumentProxy | undefined;
   try {
     const pdfjsLib = await import("pdfjs-dist");
 
@@ -137,9 +138,16 @@ export async function parsePDFFile(file: File) {
     for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
       const page = await pdfDocument.getPage(pageNum);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .filter((item) => "str" in item)
-        .map((item) => (item as { str: string }).str)
+      const textItems = textContent.items as Array<
+        { str: string } | Record<string, unknown>
+      >;
+      const pageText = textItems
+        .filter(
+          (
+            item: { str: string } | Record<string, unknown>,
+          ): item is { str: string } => "str" in item,
+        )
+        .map((item) => item.str)
         .join(" ");
       fullText += pageText + "\n";
     }
@@ -158,6 +166,6 @@ export async function parsePDFFile(file: File) {
     );
   } finally {
     // Clean up PDF document resources
-    await pdfDocument.destroy();
+    await pdfDocument?.destroy();
   }
 }
