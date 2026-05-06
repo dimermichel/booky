@@ -3,16 +3,20 @@
 import { EndSessionResult, StartSessionResult } from "@/types";
 import { connectToDatabase } from "@/database/mongoose";
 import VoiceSession from "@/database/models/voiceSession.model";
-import { getCurrentBillingPeriodStart } from "@/lib/subscription-constants";
+import { auth } from "@clerk/nextjs/server";
+import mongoose from "mongoose";
 
 export const startVoiceSession = async (
-  clerkId: string,
   bookId: string,
 ): Promise<StartSessionResult> => {
   try {
     await connectToDatabase();
 
-    // Limits/Plan to see whether a session is allowed.
+    const { userId: clerkId } = await auth();
+    if (!clerkId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     const { getUserPlan } = await import("@/lib/subscription.server");
     const { PLAN_LIMITS, getCurrentBillingPeriodStart } =
       await import("@/lib/subscription-constants");
@@ -21,35 +25,44 @@ export const startVoiceSession = async (
     const limits = PLAN_LIMITS[plan];
     const billingPeriodStart = getCurrentBillingPeriodStart();
 
-    const sessionCount = await VoiceSession.countDocuments({
-      clerkId,
-      billingPeriodStart,
-    });
+    const mongoSession = await mongoose.startSession();
+    mongoSession.startTransaction();
 
-    if (sessionCount >= limits.maxSessionsPerMonth) {
-      const { revalidatePath } = await import("next/cache");
-      revalidatePath("/");
+    try {
+      const sessionCount = await VoiceSession.countDocuments({
+        clerkId,
+        billingPeriodStart,
+      }).session(mongoSession);
+
+      if (sessionCount >= limits.maxSessionsPerMonth) {
+        await mongoSession.abortTransaction();
+        const { revalidatePath } = await import("next/cache");
+        revalidatePath("/");
+        return {
+          success: false,
+          error: `You have reached the monthly session limit for your ${plan} plan (${limits.maxSessionsPerMonth}). Please upgrade for more sessions.`,
+          isBillingError: true,
+        };
+      }
+
+      const [session] = await VoiceSession.create(
+        [{ clerkId, bookId, startedAt: new Date(), billingPeriodStart, durationSeconds: 0 }],
+        { session: mongoSession },
+      );
+
+      await mongoSession.commitTransaction();
 
       return {
-        success: false,
-        error: `You have reached the monthly session limit for your ${plan} plan (${limits.maxSessionsPerMonth}). Please upgrade for more sessions.`,
-        isBillingError: true,
+        success: true,
+        sessionId: session._id.toString(),
+        maxDurationMinutes: limits.maxDurationPerSession,
       };
+    } catch (e) {
+      await mongoSession.abortTransaction();
+      throw e;
+    } finally {
+      await mongoSession.endSession();
     }
-
-    const session = await VoiceSession.create({
-      clerkId,
-      bookId,
-      startedAt: new Date(),
-      billingPeriodStart,
-      durationSeconds: 0,
-    });
-
-    return {
-      success: true,
-      sessionId: session._id.toString(),
-      maxDurationMinutes: limits.maxDurationPerSession,
-    };
   } catch (e) {
     console.error("Error starting voice session", e);
     return {
@@ -66,10 +79,15 @@ export const endVoiceSession = async (
   try {
     await connectToDatabase();
 
-    const result = await VoiceSession.findByIdAndUpdate(sessionId, {
-      endedAt: new Date(),
-      durationSeconds,
-    });
+    const { userId: clerkId } = await auth();
+    if (!clerkId) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const result = await VoiceSession.findOneAndUpdate(
+      { _id: sessionId, clerkId },
+      { endedAt: new Date(), durationSeconds },
+    );
 
     if (!result) return { success: false, error: "Voice session not found." };
 

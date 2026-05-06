@@ -22,7 +22,12 @@ const Search = () => {
         params.delete("query");
       }
 
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+      const queryString = params.toString();
+      const newPath = queryString ? `${pathname}?${queryString}` : pathname;
+      const currentPath = window.location.pathname + window.location.search;
+      if (newPath !== currentPath) {
+        router.push(newPath, { scroll: false });
+      }
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
