@@ -7,14 +7,14 @@ import { Show, SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { label: "Library", href: "/" },
-  { label: "Add New", href: "/books/new" },
-  { label: "Pricing", href: "/subscriptions" },
+  { label: "Library", href: "/", requiresAuth: true },
+  { label: "Add New", href: "/books/new", requiresAuth: true },
+  { label: "Pricing", href: "/subscriptions", requiresAuth: false },
 ];
 
 const Navbar = () => {
   const pathName = usePathname();
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
 
   return (
     <header className="w-full fixed z-50 bg-(--bg-primary)">
@@ -25,7 +25,7 @@ const Navbar = () => {
         </Link>
 
         <nav className="w-fit flex gap-7.5 items-center">
-          {navItems.map(({ label, href }) => {
+          {navItems.filter(({ requiresAuth }) => !requiresAuth || isSignedIn).map(({ label, href }) => {
             const isActive =
               pathName === href ||
               (href !== "/" && pathName.startsWith(href + "/"));

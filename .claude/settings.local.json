@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm install *)",
-      "Bash(mkdir -p /Users/michelmaia/Workspace/React/booky/app/api/vapi/search-book)"
+      "Bash(mkdir -p /Users/michelmaia/Workspace/React/booky/app/api/vapi/search-book)",
+      "Bash(grep -E \"\\\\.tsx$|\\\\.ts$\")"
     ],
     "additionalDirectories": [
       "/Users/michelmaia/Workspace/React/booky/app/api/vapi"

@@ -1,5 +1,6 @@
 import HeroSection from "@/components/HeroSection";
 import BookCard from "@/components/BookCard";
+import LandingSection from "@/components/LandingSection";
 import { getAllBooks } from "@/lib/actions/book.actions";
 import Search from "@/components/Search";
 import { auth } from "@clerk/nextjs/server";
@@ -12,7 +13,12 @@ const Page = async ({
   const { userId } = await auth();
   const { query } = await searchParams;
 
-  const bookResults = await getAllBooks(userId ?? "", query ?? undefined);
+  if (!userId) return <LandingSection />;
+
+  const bookResults = await getAllBooks(
+    userId ?? undefined,
+    query ?? undefined,
+  );
   const books = bookResults.success ? (bookResults.data ?? []) : [];
 
   return (

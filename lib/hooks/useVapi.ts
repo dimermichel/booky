@@ -67,6 +67,7 @@ export function useVapi(book: IBook) {
   const [sessionMaxDurationMinutes, setSessionMaxDurationMinutes] = useState<number | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const isStoppingRef = useRef(false);
@@ -108,7 +109,7 @@ export function useVapi(book: IBook) {
                   sessionMaxDurationRef.current / SECONDS_PER_MINUTE,
                 )} minutes) reached. Upgrade your plan for longer sessions.`,
               );
-              router.push("/");
+              navigationTimeoutRef.current = setTimeout(() => router.push("/"), 3000);
               return;
             }
           }
@@ -268,6 +269,7 @@ export function useVapi(book: IBook) {
         getVapi().off(event as keyof typeof handlers, handler as () => void);
       });
       if (timerRef.current) clearInterval(timerRef.current);
+      if (navigationTimeoutRef.current) clearTimeout(navigationTimeoutRef.current);
     };
   }, []);
 
@@ -285,6 +287,7 @@ export function useVapi(book: IBook) {
       const result = await startVoiceSession(book._id);
 
       if (!result.success) {
+        setSessionMaxDurationMinutes(null);
         setLimitError(
           result.error || "Session limit reached. Please upgrade your plan.",
         );
@@ -322,6 +325,7 @@ export function useVapi(book: IBook) {
         );
         sessionIdRef.current = null;
       }
+      setSessionMaxDurationMinutes(null);
       setStatus("idle");
       setLimitError("Failed to start voice session. Please try again.");
     }
