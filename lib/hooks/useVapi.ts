@@ -274,6 +274,11 @@ export function useVapi(book: IBook) {
   }, []);
 
   const start = useCallback(async () => {
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current);
+      navigationTimeoutRef.current = null;
+    }
+
     if (!userId) {
       setLimitError("Please sign in to start a voice session.");
       return;
@@ -329,7 +334,7 @@ export function useVapi(book: IBook) {
       setStatus("idle");
       setLimitError("Failed to start voice session. Please try again.");
     }
-  }, [book._id, book.title, book.author, voice, userId]);
+  }, [book._id, book.title, book.author, voice, userId, limits.maxDurationPerSession]);
 
   const stop = useCallback(() => {
     isStoppingRef.current = true;
