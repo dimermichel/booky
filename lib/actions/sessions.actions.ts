@@ -1,37 +1,73 @@
 "use server";
 
-import VoiceSession from "@/database/models/voiceSession.model";
-import { connectToDatabase } from "@/database/mongoose";
 import { EndSessionResult, StartSessionResult } from "@/types";
-import { getCurrentBillingPeriodStart } from "../subscription-constants";
+import { connectToDatabase } from "@/database/mongoose";
+import VoiceSession from "@/database/models/voiceSession.model";
+import { auth } from "@clerk/nextjs/server";
+import mongoose from "mongoose";
 
 export const startVoiceSession = async (
-  clerkId: string,
   bookId: string,
 ): Promise<StartSessionResult> => {
   try {
     await connectToDatabase();
 
-    //Limit/Plan to see whether user can start session
+    const { userId: clerkId } = await auth();
+    if (!clerkId) {
+      return { success: false, error: "Unauthorized" };
+    }
 
-    const session = await VoiceSession.create({
-      clerkId,
-      bookId,
-      startedAt: new Date(),
-      billingPeriodStart: getCurrentBillingPeriodStart(),
-      durationSeconds: 0,
-    });
+    const { getUserPlan } = await import("@/lib/subscription.server");
+    const { PLAN_LIMITS, getCurrentBillingPeriodStart } =
+      await import("@/lib/subscription-constants");
 
-    return {
-      success: true,
-      sessionId: session._id.toString(),
-      maxDurationMinutes: 60, // Placeholder, replace with actual limit based on user's subscription plan
-    };
-  } catch (error) {
-    console.error("Error starting voice session:", error);
+    const plan = await getUserPlan();
+    const limits = PLAN_LIMITS[plan];
+    const billingPeriodStart = getCurrentBillingPeriodStart();
+
+    const mongoSession = await mongoose.startSession();
+    mongoSession.startTransaction();
+
+    try {
+      const sessionCount = await VoiceSession.countDocuments({
+        clerkId,
+        billingPeriodStart,
+      }).session(mongoSession);
+
+      if (sessionCount >= limits.maxSessionsPerMonth) {
+        await mongoSession.abortTransaction();
+        const { revalidatePath } = await import("next/cache");
+        revalidatePath("/");
+        return {
+          success: false,
+          error: `You have reached the monthly session limit for your ${plan} plan (${limits.maxSessionsPerMonth}). Please upgrade for more sessions.`,
+          isBillingError: true,
+        };
+      }
+
+      const [session] = await VoiceSession.create(
+        [{ clerkId, bookId, startedAt: new Date(), billingPeriodStart, durationSeconds: 0 }],
+        { session: mongoSession },
+      );
+
+      await mongoSession.commitTransaction();
+
+      return {
+        success: true,
+        sessionId: session._id.toString(),
+        maxDurationMinutes: limits.maxDurationPerSession,
+      };
+    } catch (e) {
+      await mongoSession.abortTransaction();
+      throw e;
+    } finally {
+      await mongoSession.endSession();
+    }
+  } catch (e) {
+    console.error("Error starting voice session", e);
     return {
       success: false,
-      error: "Failed to start voice session. Please try again.",
+      error: "Failed to start voice session. Please try again later.",
     };
   }
 };
@@ -43,21 +79,24 @@ export const endVoiceSession = async (
   try {
     await connectToDatabase();
 
-    const result = await VoiceSession.findByIdAndUpdate(sessionId, {
-      endedAt: new Date(),
-      durationSeconds,
-    });
-
-    if (!result) {
-      return { success: false, error: "Session not found." };
+    const { userId: clerkId } = await auth();
+    if (!clerkId) {
+      return { success: false, error: "Unauthorized" };
     }
 
+    const result = await VoiceSession.findOneAndUpdate(
+      { _id: sessionId, clerkId },
+      { endedAt: new Date(), durationSeconds },
+    );
+
+    if (!result) return { success: false, error: "Voice session not found." };
+
     return { success: true };
-  } catch (error) {
-    console.error("Error ending voice session:", error);
+  } catch (e) {
+    console.error("Error ending voice session", e);
     return {
       success: false,
-      error: "Failed to end voice session. Please try again.",
+      error: "Failed to end voice session. Please try again later.",
     };
   }
 };

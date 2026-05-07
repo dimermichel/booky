@@ -6,18 +6,20 @@ import { escapeRegex, generateSlug, serializeData } from "@/lib/utils";
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/bookSegment.model";
 import mongoose from "mongoose";
-import { getUserPlan } from "@/lib/subscription.server";
+import { revalidatePath } from "next/cache";
 
-export const getAllBooks = async (search?: string) => {
+export const getAllBooks = async (userId?: string, search?: string) => {
+  if (!userId) return { success: true, data: [] };
   try {
     await connectToDatabase();
 
-    let query = {};
+    let query: Record<string, unknown> = { clerkId: userId };
 
     if (search) {
       const escapedSearch = escapeRegex(search);
       const regex = new RegExp(escapedSearch, "i");
       query = {
+        clerkId: userId,
         $or: [{ title: { $regex: regex } }, { author: { $regex: regex } }],
       };
     }
@@ -97,7 +99,6 @@ export const createBook = async (data: CreateBook) => {
     const bookCount = await Book.countDocuments({ clerkId: userId });
 
     if (bookCount >= limits.maxBooks) {
-      const { revalidatePath } = await import("next/cache");
       revalidatePath("/");
 
       return {
