@@ -29,7 +29,7 @@ const Footer = () => {
 
   return (
     <footer className="w-full bg-[#f3e4c7] mt-auto">
-      <div className="wrapper py-10 flex flex-col gap-8">
+      <div className="wrapper py-6 flex flex-col gap-5">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
           <Link href="/" className="flex gap-1.5 items-center group">
             <Image
@@ -43,21 +43,6 @@ const Footer = () => {
               Booky
             </span>
           </Link>
-
-          <nav className="flex gap-6 flex-wrap">
-            {footerLinks.map(({ label, href }) => (
-              <Link
-                key={label}
-                href={href}
-                className="text-black hover:opacity-70 transition-colors"
-                {...(href.startsWith("http")
-                  ? { target: "_blank", rel: "noopener noreferrer" }
-                  : {})}
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
         </div>
 
         <div className="w-full h-px bg-white/10" />
