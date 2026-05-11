@@ -48,7 +48,7 @@ const LandingSection = () => {
 
             <div className="library-hero-illustration">
               <Image
-                src="/assets/hero-illustration.png"
+                src="/assets/booky-modern-illustration.png"
                 alt="Books illustration"
                 width={260}
                 height={200}
@@ -74,7 +74,7 @@ const LandingSection = () => {
 
           <div className="library-hero-illustration-desktop">
             <Image
-              src="/assets/hero-illustration.png"
+              src="/assets/booky-modern-illustration.png"
               alt="Books illustration"
               width={380}
               height={295}
